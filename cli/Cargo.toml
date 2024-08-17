@@ -1,6 +1,6 @@
 [package]
 name = "cli"
-version = "0.2.0"
+version = "0.1.0"
 edition = "2021"
 description = "cli"
 authors = ["tian <tian@racoons.dev>"]
@@ -8,20 +8,18 @@ authors = ["tian <tian@racoons.dev>"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-commons = { workspace = true }
-anchor-lang = { workspace = true }
-anchor-spl = { workspace = true }
-anchor-client = { workspace = true, features = ["async"] }
-clap = { workspace = true, features = ["derive"] }
-anyhow = { workspace = true }
-shellexpand = { workspace = true }
-rust_decimal = { workspace = true, features = ["maths"] }
+anchor-lang = {workspace=true}
+anchor-spl = {workspace=true}
+anchor-client = { workspace=true, features = ["async"] }
+clap = { workspace=true, features = ["derive"] }
+anyhow = {workspace=true}
+shellexpand = {workspace=true}
+rust_decimal = { workspace=true, features = ["maths"] }
 lb_clmm = { path = "../programs/lb_clmm", features = ["cpi"] }
-spl-associated-token-account = { workspace = true }
-mpl-token-metadata = { workspace = true }
-rand = { workspace = true }
-tokio = { workspace = true, features = ["full", "parking_lot"] }
-bincode = { workspace = true }
+spl-associated-token-account = {workspace=true}
+mpl-token-metadata = {workspace=true}
+rand = {workspace=true}
+tokio = { workspace=true, features = ["full", "parking_lot"] }
 
 [dev-dependencies]
 proptest = "1.2.0"

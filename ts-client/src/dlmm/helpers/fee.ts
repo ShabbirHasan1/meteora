@@ -75,71 +75,65 @@ export function computeProtocolFee(feeAmount: BN, sParameter: sParameters) {
     .div(new BN(BASIS_POINT_MAX));
 }
 
-export function swapExactOutQuoteAtBin(
+export function swapQuoteAtBinWithCap(
   bin: Bin,
   binStep: number,
   sParameter: sParameters,
   vParameter: vParameters,
-  outAmount: BN,
-  swapForY: boolean
+  inAmount: BN,
+  swapForY: boolean,
+  remainingCap: BN,
 ): {
+  isReachCap: boolean,
   amountIn: BN;
   amountOut: BN;
   fee: BN;
   protocolFee: BN;
 } {
-  if (swapForY && bin.amountY.isZero()) {
-    return {
-      amountIn: new BN(0),
-      amountOut: new BN(0),
-      fee: new BN(0),
-      protocolFee: new BN(0),
-    };
-  }
-
-  if (!swapForY && bin.amountX.isZero()) {
-    return {
-      amountIn: new BN(0),
-      amountOut: new BN(0),
-      fee: new BN(0),
-      protocolFee: new BN(0),
-    };
-  }
-
   let maxAmountOut: BN;
-  let maxAmountIn: BN;
-
   if (swapForY) {
     maxAmountOut = bin.amountY;
-    maxAmountIn = shlDiv(bin.amountY, bin.price, SCALE_OFFSET, Rounding.Up);
   } else {
     maxAmountOut = bin.amountX;
-    maxAmountIn = mulShr(bin.amountX, bin.price, SCALE_OFFSET, Rounding.Up);
   }
 
-  if (outAmount.gte(maxAmountOut)) {
-    const maxFee = computeFee(binStep, sParameter, vParameter, maxAmountIn);
-    const protocolFee = computeProtocolFee(maxFee, sParameter);
+  if (maxAmountOut.lt(remainingCap)) {
+    const { amountIn, amountOut, fee, protocolFee } = swapQuoteAtBin(
+      bin,
+      binStep,
+      sParameter,
+      vParameter,
+      inAmount,
+      swapForY
+    );
     return {
-      amountIn: maxAmountIn,
-      amountOut: maxAmountOut,
-      fee: maxFee,
-      protocolFee,
-    };
-  } else {
-    const amountIn = getAmountIn(outAmount, bin.price, swapForY);
-    const fee = computeFee(binStep, sParameter, vParameter, amountIn);
-    const protocolFee = computeProtocolFee(fee, sParameter);
-    return {
+      isReachCap: false,
       amountIn,
-      amountOut: outAmount,
+      amountOut,
       fee,
-      protocolFee,
-    };
+      protocolFee
+    }
+  }
+  let amountInWithCap = getAmountIn(remainingCap, bin.price, swapForY);
+  let actualAmountIn = inAmount.gt(amountInWithCap) ? amountInWithCap : inAmount;
+  const { amountIn, amountOut, fee, protocolFee } = swapQuoteAtBin(
+    bin,
+    binStep,
+    sParameter,
+    vParameter,
+    actualAmountIn,
+    swapForY
+  );
+  return {
+    isReachCap: true,
+    amountIn,
+    amountOut,
+    fee,
+    protocolFee
   }
 }
 
-export function swapExactInQuoteAtBin(
+export function swapQuoteAtBin(
   bin: Bin,
   binStep: number,
   sParameter: sParameters,
@@ -214,10 +208,11 @@ export function swapExactInQuoteAtBin(
   };
 }
 
+
 function getAmountIn(amountOut: BN, price: BN, swapForY: Boolean): BN {
   if (swapForY) {
-    return shlDiv(amountOut, price, SCALE_OFFSET, Rounding.Up);
+    return shlDiv(amountOut, price, SCALE_OFFSET, Rounding.Down);
   } else {
-    return mulShr(amountOut, price, SCALE_OFFSET, Rounding.Up);
+    return mulShr(amountOut, price, SCALE_OFFSET, Rounding.Down);
   }
 }

@@ -3,11 +3,13 @@ import {
   Keypair,
   PublicKey,
   sendAndConfirmTransaction,
+  SYSVAR_CLOCK_PUBKEY,
+  ParsedAccountData,
 } from "@solana/web3.js";
 import { bs58 } from "@coral-xyz/anchor/dist/cjs/utils/bytes";
-import { DLMM } from "../dlmm";
+import { DLMM } from "./dlmm";
 import BN from "bn.js";
-import { BinLiquidity, LbPosition, StrategyType } from "../dlmm/types";
+import { BinLiquidity, LbPosition, StrategyType } from "./dlmm/types";
 
 const user = Keypair.fromSecretKey(
   new Uint8Array(bs58.decode(process.env.USER_PRIVATE_KEY))
@@ -15,7 +17,7 @@ const user = Keypair.fromSecretKey(
 const RPC = process.env.RPC || "https://api.devnet.solana.com";
 const connection = new Connection(RPC, "finalized");
 
-const poolAddress = new PublicKey(
+const devnetPool = new PublicKey(
   "3W2HKgUa96Z69zzG3LK1g8KdcRAWzAttiLiHfYnKuPw5"
 );
 
@@ -219,7 +221,9 @@ async function removePositionLiquidity(dlmmPool: DLMM) {
           position: publicKey,
           user: user.publicKey,
           binIds: binIdsToRemove,
-          bps: new BN(100 * 100),
+          liquiditiesBpsToRemove: new Array(binIdsToRemove.length).fill(
+            new BN(100 * 100)
+          ),
           shouldClaimAndClose: true, // should claim swap fee and close position together
         });
       })
@@ -250,7 +254,33 @@ async function swap(dlmmPool: DLMM) {
   const swapYtoX = true;
   const binArrays = await dlmmPool.getBinArrayForSwap(swapYtoX);
 
-  const swapQuote = await dlmmPool.swapQuote(swapAmount, swapYtoX, new BN(10), binArrays);
+  // check whether it is permission or permissionless pool
+  let maxSwappedAmount: BN;
+  let throttledStats: boolean;
+  if (!swapYtoX && dlmmPool.lbPair.pairType == 1) {
+    // get current slot
+    const parsedClock = await connection.getParsedAccountInfo(
+      SYSVAR_CLOCK_PUBKEY
+    );
+    const parsedClockAccount = (parsedClock.value!.data as ParsedAccountData)
+      .parsed as ParsedClockState;
+    if (
+      parsedClockAccount.info.slot <=
+      dlmmPool.lbPair.swapCapDeactivateSlot.toNumber()
+    ) {
+      throttledStats = true;
+      maxSwappedAmount = dlmmPool.lbPair.maxSwappedAmount;
+    }
+  }
+  const swapQuote = throttledStats
+    ? await dlmmPool.swapQuoteWithCap(
+        swapAmount,
+        swapYtoX,
+        new BN(10),
+        maxSwappedAmount,
+        binArrays
+      )
+    : await dlmmPool.swapQuote(swapAmount, swapYtoX, new BN(10), binArrays);
 
   console.log("🚀 ~ swapQuote:", swapQuote);
 
@@ -276,7 +306,7 @@ async function swap(dlmmPool: DLMM) {
 }
 
 async function main() {
-  const dlmmPool = await DLMM.create(connection, poolAddress, {
+  const dlmmPool = await DLMM.create(connection, devnetPool, {
     cluster: "devnet",
   });
 

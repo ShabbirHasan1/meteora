@@ -93,8 +93,8 @@ export interface FeeInfo {
 }
 
 export interface EmissionRate {
-  rewardOne: Decimal | undefined;
-  rewardTwo: Decimal | undefined;
+  rewardOne: Decimal;
+  rewardTwo: Decimal;
 }
 
 export interface SwapFee {
@@ -145,7 +145,6 @@ export interface StrategyParameters {
   maxBinId: number;
   minBinId: number;
   strategyType: StrategyType;
-  singleSidedX?: boolean;
 }
 
 export interface TQuoteCreatePositionParams {
@@ -190,16 +189,6 @@ export interface SwapQuote {
   binArraysPubkey: any[];
 }
 
-export interface SwapQuoteExactOut {
-  inAmount: BN;
-  outAmount: BN;
-  fee: BN;
-  priceImpact: Decimal;
-  protocolFee: BN;
-  maxInAmount: BN;
-  binArraysPubkey: any[];
-}
-
 export interface IAccountsCache {
   binArrays: Map<String, BinArray>;
   lbPair: LbPair;
@@ -233,34 +222,6 @@ export interface PositionData {
   totalClaimedFeeYAmount: BN;
 }
 
-export interface SwapWithPriceImpactParams {
-  /**
-   * mint of in token
-   */
-  inToken: PublicKey;
-  /**
-   * mint of out token
-   */
-  outToken: PublicKey;
-  /**
-   * in token amount
-   */
-  inAmount: BN;
-  /**
-   * price impact in bps
-   */
-  priceImpact: BN;
-  /**
-   * desired lbPair to swap against
-   */
-  lbPair: PublicKey;
-  /**
-   * user
-   */
-  user: PublicKey;
-  binArraysPubkey: PublicKey[];
-}
-
 export interface SwapParams {
   /**
    * mint of in token
@@ -278,34 +239,6 @@ export interface SwapParams {
    * minimum out with slippage
    */
   minOutAmount: BN;
-  /**
-   * desired lbPair to swap against
-   */
-  lbPair: PublicKey;
-  /**
-   * user
-   */
-  user: PublicKey;
-  binArraysPubkey: PublicKey[];
-}
-
-export interface SwapExactOutParams {
-  /**
-   * mint of in token
-   */
-  inToken: PublicKey;
-  /**
-   * mint of out token
-   */
-  outToken: PublicKey;
-  /**
-   * out token amount
-   */
-  outAmount: BN;
-  /**
-   * maximum in amount, also known as slippage
-   */
-  maxInAmount: BN;
   /**
    * desired lbPair to swap against
    */
